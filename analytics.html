@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>Developer Portal - โมเดลประเมินราคาเกมจากฐานข้อมูลจริง</title>
+  <style>
+    :root {
+      --primary: #38bdf8;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --warning: #f59e0b;
+    }
+    body { background-color: var(--bg); color: var(--text); font-family: sans-serif; padding: 24px; margin: 0; }
+    .container { max-width: 960px; margin: 0 auto; }
+    .card { background: var(--card); border-radius: 12px; padding: 24px; border: 1px solid var(--border); margin-bottom: 20px; }
+    h1 { color: var(--primary); font-size: 1.5rem; margin: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    label { font-weight: bold; font-size: 0.9rem; display: block; margin-bottom: 6px; }
+    select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: #0f172a; color: #fff; margin-bottom: 14px; box-sizing: border-box; }
+    button { background: var(--primary); color: #0f172a; border: none; padding: 12px; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; }
+    button:hover { background: #7dd3fc; }
+    .result-box { background: #0f172a; border-left: 4px solid var(--success); padding: 16px; border-radius: 6px; margin-top: 15px; }
+    .price-tag { font-size: 2.2rem; font-weight: bold; color: var(--success); }
+    .status-bar { display: flex; gap: 20px; font-size: 0.88rem; background: #0f172a; padding: 10px 16px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .badge { color: var(--primary); font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h1>🛠️ Developer Console: Game Pricing Recommendation Model</h1>
+      <div>
+        <button onclick="window.location.href='manage.php'" style="width: auto; padding: 8px 14px; background: #334155; color: #fff; margin-right: 8px;">ดูตารางข้อมูล SQL</button>
+        <button onclick="window.location.href='index.html'" style="width: auto; padding: 8px 14px; background: #334155; color: #fff;">กลับหน้าแรก</button>
+      </div>
+    </div>
+
+    <!-- แถบสถานะการเชื่อมต่อ SQL Data -->
+    <div class="status-bar">
+      <div>สถานะฐานข้อมูล: <span id="dbStatus" class="badge">กำลังเชื่อมต่อ...</span></div>
+      <div>จำนวนตัวอย่างที่เทรน: <span id="dbCount" class="badge">0</span> ระเบียน</div>
+      <div>ราคาแพงสุดเฉลี่ยในระบบ: <span id="dbGlobalAvg" class="badge">0 บาท</span></div>
+    </div>
+
+    <div class="grid">
+      <!-- ส่วนที่ 1: กำหนดลักษณะเกม -->
+      <div class="card">
+        <h2 style="font-size: 1.1rem; margin-top: 0;">กำหนดคุณลักษณะของเกมที่ต้องการพัฒนา</h2>
+        
+        <label for="dev_genre">แนวเกมหลัก (Genre)</label>
+        <select id="dev_genre">
+          <option value="Action">1. Action</option>
+          <option value="Adventure">2. Adventure</option>
+          <option value="Action-Adv">3. Action-Adventure</option>
+          <option value="RPG">4. RPG</option>
+          <option value="Strategy">5. Strategy</option>
+          <option value="Simulation">6. Simulation</option>
+          <option value="Sport-Racing">7. Sport & Racing</option>
+          <option value="Puzzle-Party">8. Puzzle & Party</option>
+        </select>
+
+        <label for="dev_platform">แพลตฟอร์มเป้าหมาย</label>
+        <select id="dev_platform">
+          <option value="PC">PC</option>
+          <option value="Console">Console</option>
+          <option value="Mobile">Mobile</option>
+        </select>
+
+        <button onclick="calculateFromDatabase()">⚡ คำนวณราคาแนะนำจากข้อมูลจริง</button>
+      </div>
+
+      <!-- ส่วนที่ 2: ผลลัพธ์จากการ Query & ML Pricing Logic -->
+      <div class="card">
+        <h2 style="font-size: 1.1rem; margin-top: 0;">ผลการประเมินราคาที่เหมาะสม (Data-Driven Model)</h2>
+        <div class="result-box" id="resultCard" style="display: none;">
+          <div class="price-tag" id="suggestedPrice">0 ฿</div>
+          <p id="priceRange" style="color: var(--text-muted); font-size: 0.9rem; margin: 4px 0 10px 0;"></p>
+          <p id="pricingReason" style="font-size: 0.88rem; line-height: 1.6; color: #e2e8f0;"></p>
+        </div>
+        <p id="placeholderText" style="color: var(--text-muted); font-size: 0.9rem;">กดปุ่มคำนวณเพื่อใช้แบบจำลองสถิติจากฐานข้อมูล</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sqlData = null;
+
+    // โหลดข้อมูลสดจาก MySQL ทันทีที่เปิดหน้า
+    window.addEventListener('DOMContentLoaded', () => {
+      fetch('get_analytics_data.php')
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'success') {
+            sqlData = data;
+            const total = parseInt(data.overview.total_respondents) || 0;
+            const avg = Math.round(parseFloat(data.overview.global_avg_max_price) || 0);
+
+            document.getElementById('dbStatus').innerText = 'เชื่อมต่อแล้ว (Live SQL)';
+            document.getElementById('dbCount').innerText = total;
+            document.getElementById('dbGlobalAvg').innerText = avg.toLocaleString() + ' บาท';
+
+            if (total === 0) {
+              alert('ฐานข้อมูลยังไม่มีข้อมูลผู้ตอบแบบสอบถาม กรุณาไปที่หน้าแรกแล้วทดลองกรอกข้อมูลก่อน');
+            }
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('dbStatus').innerText = 'ไม่สามารถเชื่อมต่อ SQL ได้';
+          document.getElementById('dbStatus').style.color = '#ef4444';
+        });
+    });
+
+    // โมเดลคำนวณจุดราคาขายที่เหมาะสม (Data-Driven Pricing)
+    function calculateFromDatabase() {
+      if (!sqlData || parseInt(sqlData.overview.total_respondents) === 0) {
+        alert('ยังไม่มีข้อมูลจากฐานข้อมูล SQL ไม่สามารถรันโมเดลได้');
+        return;
+      }
+
+      const selectedGenre = document.getElementById('dev_genre').value;
+      const selectedPlatform = document.getElementById('dev_platform').value;
+
+      // 1. ดึง Base Price จากค่าเฉลี่ยในแนวเกมนั้นๆ จากตาราง SQL
+      let genreAvg = 0;
+      let genreCount = 0;
+      if (sqlData.genres[selectedGenre]) {
+        genreAvg = sqlData.genres[selectedGenre].avg_max_price;
+        genreCount = sqlData.genres[selectedGenre].count;
+      }
+
+      // กรณีกลุ่มตัวอย่างแนวนั้นน้อยกว่าเกณฑ์ ให้ Fallback ไปใช้ค่าเฉลี่ยภาพรวมทั้งฐานข้อมูล
+      const globalAvg = parseFloat(sqlData.overview.global_avg_max_price) || 450;
+      let baseTarget = genreCount > 0 ? genreAvg : globalAvg;
+
+      // 2. คำนวณ Platform Weight จากสถิติจริงในฐานข้อมูล
+      let platformRatio = 1.0;
+      if (sqlData.platforms[selectedPlatform] && globalAvg > 0) {
+        platformRatio = sqlData.platforms[selectedPlatform].avg_max_price / globalAvg;
+      }
+
+      // 3. คำนวณราคาแนะนำ (Optimal Point)
+      let calculatedPrice = Math.round((baseTarget * platformRatio) / 10) * 10;
+      if (calculatedPrice <= 0) calculatedPrice = 150;
+
+      // คำนวณ Upper / Lower Bounds (Confidence Interval)
+      const minBound = Math.round((calculatedPrice * 0.75) / 10) * 10;
+      const maxBound = Math.round((calculatedPrice * 1.25) / 10) * 10;
+
+      // ตรวจสอบข้อมูลความรู้สึก "แพงเกินไป" จากตาราง PriceHistory
+      let expensiveAvg = sqlData.sentiments['แพงเกินไป'] ? Math.round(sqlData.sentiments['แพงเกินไป'].avg_price) : 0;
+      let riskWarning = expensiveAvg > 0 
+        ? ` (จุดเตือนภัย: ผู้เล่นในระบบระบุว่าราคาเฉลี่ยที่ ${expensiveAvg} บาท มักเริ่มรู้สึกว่าแพงเกินไป)` 
+        : '';
+
+      // นำผลลัพธ์ไปแสดงผล
+      document.getElementById('resultCard').style.display = 'block';
+      document.getElementById('placeholderText').style.display = 'none';
+      document.getElementById('suggestedPrice').innerText = calculatedPrice.toLocaleString() + ' บาท';
+      document.getElementById('priceRange').innerText = `ช่วงราคาที่ปลอดภัย: ${minBound} - ${maxBound} บาท`;
+      document.getElementById('pricingReason').innerHTML = 
+        `• <strong>ฐานข้อมูลที่ใช้อ้างอิง:</strong> คำนวณจากผู้เล่นหมวด <em>${selectedGenre}</em> (จำนวน ${genreCount} รายการ) และแพลตฟอร์ม <em>${selectedPlatform}</em><br>` +
+        `• <strong>การวิเคราะห์ความคุ้มค่า:</strong> หากตั้งเกิน ${maxBound} บาท จะมีความเสี่ยงสูงที่จะเสียผู้เล่นกลุ่มเป้าหมาย${riskWarning}`;
+    }
+  </script>
+</body>
+</html>

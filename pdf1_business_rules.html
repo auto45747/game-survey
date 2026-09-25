@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Business Rules & Entities - CPE-443</title>
+  <style>
+    @page { size: A4; margin: 20mm; }
+    body { font-family: "Sarabun", -apple-system, sans-serif; line-height: 1.6; color: #1e293b; }
+    h1 { font-size: 18pt; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 6px; }
+    h2 { font-size: 14pt; color: #0369a1; margin-top: 18px; margin-bottom: 8px; }
+    h3 { font-size: 11pt; color: #0f172a; margin-bottom: 4px; }
+    ul { margin-top: 4px; padding-left: 24px; }
+    li { margin-bottom: 6px; font-size: 10.5pt; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; }
+    .badge { font-weight: bold; color: #0284c7; }
+  </style>
+</head>
+<body>
+
+  <h1>โครงงานการวิเคราะห์ราคาและพฤติกรรมผู้เล่นเกม (CPE-443)</h1>
+  <p><strong>หัวข้อ:</strong> เอกสารข้อกำหนดทางธุรกิจ (Business Rules) และรายการ Entity/Attributes (มาตรฐาน 5NF)</p>
+
+  <h2>1. ข้อกำหนดทางธุรกิจ (Business Rules)</h2>
+  <div class="card">
+    <ul>
+      <li><strong>ผู้ตอบแบบสำรวจ (Respondent):</strong> ผู้ตอบ 1 คนจะต้องระบุข้อมูลส่วนบุคคลพื้นฐาน ได้แก่ เพศ, อายุ (10–70 ปี), สถานภาพอาชีพ, รายได้เฉลี่ยต่อเดือน, ชั่วโมงเล่นเกมต่อสัปดาห์ (0–168 ชม.) และช่วงเวลาที่เล่นบ่อยที่สุด (กลางวัน/กลางคืน)</li>
+      <li><strong>ประวัติราคาและการตัดสินใจ (Price History):</strong> ผู้ตอบแต่ละคนจะต้องมีประวัติราคาเกมที่เคยซื้อ (ราคาต่ำสุด, ราคาสูงสุด และความพึงพอใจต่อราคา) ผูกติดกับตนเองเพียง 1 รายการเท่านั้น (One-to-One)</li>
+      <li><strong>ความหลากหลายของแพลตฟอร์มและแนวเกม:</strong> ผู้ตอบ 1 คนสามารถเล่นเกมได้หลายแพลตฟอร์ม (PC, Console, Mobile) และชอบเล่นเกมได้หลายหมวดหมู่ (Action, RPG, Strategy ฯลฯ)</li>
+      <li><strong>ความเข้ากันได้ตามหลัก 5NF:</strong> การเล่นเกมของผู้เล่นเชื่อมโยง 3 ด้าน (ผู้เล่น, แพลตฟอร์ม, แนวเกม) ซึ่งจะถูกแบ่งออกเป็น 3 ตารางจับคู่แบบ Lossless Join Decomposition เพื่อตัดปัญหา Join Dependency:
+        <ul>
+          <li>ผู้เล่นเล่นบนแพลตฟอร์มใดบ้าง</li>
+          <li>ผู้เล่นชอบแนวเกมใดบ้าง</li>
+          <li>แพลตฟอร์มแต่ละชนิดรองรับแนวเกมใดบ้างในระบบ</li>
+        </ul>
+      </li>
+      <li><strong>การควบคุมอคติของข้อมูล (Bias Audit):</strong> ผู้ตอบ 1 คนจะต้องระบุช่องทางที่ได้รับแบบสอบถามเพียง 1 ช่องทางเพื่อใช้วิเคราะห์ Sampling Bias ตามเกณฑ์ของรายวิชา</li>
+    </ul>
+  </div>
+
+  <h2>2. รายชื่อ Entity และ Attributes</h2>
+  
+  <div class="card">
+    <h3>1. Respondent (ผู้ตอบแบบสำรวจ)</h3>
+    <p><code>respondent_id</code> (PK), <code>gender</code>, <code>age</code>, <code>income_month</code>, <code>play_hours_week</code>, <code>peak_time</code>, <code>occupation_id</code> (FK), <code>survey_channel_id</code> (FK), <code>created_at</code></p>
+  </div>
+
+  <div class="card">
+    <h3>2. PriceHistory (ประวัติการซื้อเกมและจุดราคา)</h3>
+    <p><code>history_id</code> (PK), <code>respondent_id</code> (FK, Unique), <code>min_price</code>, <code>max_price</code>, <code>price_sentiment</code></p>
+  </div>
+
+  <div class="card">
+    <h3>3. Occupation (กลุ่มสายอาชีพ)</h3>
+    <p><code>occupation_id</code> (PK), <code>occupation_name</code></p>
+  </div>
+
+  <div class="card">
+    <h3>4. SurveyChannel (ช่องทางการรับแบบสอบถาม)</h3>
+    <p><code>channel_id</code> (PK), <code>channel_name</code></p>
+  </div>
+
+  <div class="card">
+    <h3>5. Platform (แพลตฟอร์มเล่นเกม)</h3>
+    <p><code>platform_id</code> (PK), <code>platform_name</code></p>
+  </div>
+
+  <div class="card">
+    <h3>6. Genre (หมวดหมู่แนวเกม 8 หมวด)</h3>
+    <p><code>genre_id</code> (PK), <code>genre_code</code>, <code>genre_title</code>, <code>genre_description</code></p>
+  </div>
+
+  <div class="card">
+    <h3>7. ความสัมพันธ์เชื่อมโยงรองรับ 5NF (Decomposition Tables)</h3>
+    <ul>
+      <li><code>RespondentPlatform</code>: <code>respondent_id</code> (PK, FK), <code>platform_id</code> (PK, FK)</li>
+      <li><code>RespondentGenre</code>: <code>respondent_id</code> (PK, FK), <code>genre_id</code> (PK, FK)</li>
+      <li><code>PlatformGenreSupport</code>: <code>platform_id</code> (PK, FK), <code>genre_id</code> (PK, FK)</li>
+    </ul>
+  </div>
+
+</body>
+</html>

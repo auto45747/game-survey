@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>แบบสำรวจพฤติกรรมการเล่นเกม (CPE-443)</title>
+  <style>
+    :root {
+      --primary: #38bdf8;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --danger: #ef4444;
+      --success: #10b981;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Prompt", sans-serif; }
+    body { background-color: var(--bg); color: var(--text); margin: 0; padding: 24px; line-height: 1.5; }
+    .container { max-width: 760px; margin: 0 auto; }
+    .top-nav { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+    .card { background: var(--card); border-radius: 14px; padding: 28px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.3); }
+    .header h1 { font-size: 1.45rem; margin: 0 0 8px 0; color: var(--primary); }
+    .header p { color: var(--text-muted); font-size: 0.95rem; margin: 0; }
+    .pdpa-box { background: #0f172a; border-left: 4px solid var(--primary); padding: 14px 18px; border-radius: 6px; font-size: 0.9rem; margin-bottom: 20px; border: 1px solid var(--border); }
+    .pdpa-box ul { margin: 8px 0; padding-left: 20px; }
+    .step { display: none; }
+    .step.active { display: block; }
+    .form-group { margin-bottom: 22px; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.95rem; }
+    .desc { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; display: block; }
+    input[type="number"], input[type="text"], input[type="password"], select { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: #0f172a; color: var(--text); outline: none; }
+    input:focus, select:focus { border-color: var(--primary); }
+    .radio-group { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+    .radio-option { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .btn-group { display: flex; justify-content: space-between; margin-top: 28px; gap: 12px; }
+    button { padding: 11px 22px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: #0f172a; }
+    .btn-primary:hover { background: #7dd3fc; }
+    .btn-secondary { background: #334155; color: var(--text); }
+    .btn-secondary:hover { background: #475569; }
+    .progress-bar { height: 6px; background: var(--card); border-radius: 999px; margin-bottom: 20px; overflow: hidden; border: 1px solid var(--border); }
+    .progress-fill { height: 100%; width: 33%; background: var(--primary); transition: width 0.3s ease; }
+    .genre-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 10px; }
+    .genre-card { display: flex; flex-direction: column; padding: 16px; border-radius: 10px; border: 1.5px solid var(--border); background: #0f172a; cursor: pointer; transition: 0.2s; }
+    .genre-card:hover { border-color: var(--primary); background: #132038; }
+    .genre-card input[type="radio"] { display: none; }
+    .genre-card.selected { border-color: var(--primary); background: #172554; box-shadow: 0 0 0 1px var(--primary); }
+    .genre-card.selected .genre-title { color: var(--primary); }
+    .genre-title { font-size: 0.98rem; font-weight: 700; margin-bottom: 4px; color: #f1f5f9; }
+    .genre-sub { font-size: 0.8rem; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="top-nav">
+    <button class="btn-secondary" style="font-size: 0.85rem; padding: 6px 12px;" onclick="showDevLogin()">🔒 สำหรับ Developer</button>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress"></div>
+  </div>
+
+  <form id="surveyForm">
+    <!-- ขั้นที่ 1: PDPA -->
+    <div class="card step active" id="step1">
+      <div class="header">
+        <h1>แบบสำรวจพฤติกรรมการเล่นเกมและราคาที่เหมาะสม</h1>
+        <p>CPE-443 Introduction to Data Science</p>
+      </div>
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+      <div class="pdpa-box">
+        <strong style="color: var(--primary);">คำชี้แจงการคุ้มครองข้อมูลส่วนบุคคล (PDPA มาตรา 24)</strong>
+        <ul>
+          <li><strong>ข้อมูลที่จัดเก็บ:</strong> เพศ, อายุ, อาชีพ, รายได้, แนวเกมที่เล่น, และพฤติกรรมการซื้อเกม</li>
+          <li><strong>สิ่งที่ไม่จัดเก็บ:</strong> ไม่เก็บชื่อ นามสกุล อีเมล บัญชีโซเชียล หรือรหัสนักศึกษา (ไม่ระบุตัวตน)</li>
+          <li><strong>วัตถุประสงค์:</strong> เพื่อการศึกษาและสร้างโมเดล Machine Learning ในวิชาเท่านั้น</li>
+        </ul>
+      </div>
+      <div class="form-group">
+        <label>ท่านยินยอมให้ใช้ข้อมูลเพื่อการศึกษาตามวัตถุประสงค์ข้างต้นหรือไม่ *</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="pdpa" value="agree" required> ข้าพเจ้ายินยอม</label>
+          <label class="radio-option"><input type="radio" name="pdpa" value="disagree"> ไม่ยินยอม</label>
+        </div>
+      </div>
+      <div class="btn-group" style="justify-content: flex-end;">
+        <button type="button" class="btn-primary" onclick="handleStep1()">ถัดไป</button>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 2: ข้อมูลประชากรศาสตร์ -->
+    <div class="card step" id="step2">
+      <div class="header">
+        <h1>ข้อมูลประชากรและพฤติกรรม</h1>
+        <p>ตอนที่ 1: ปัจจัยพื้นฐานของผู้ตอบ</p>
+      </div>
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+      <div class="form-group">
+        <label for="gender">เพศ *</label>
+        <select id="gender" required>
+          <option value="">-- เลือกเพศ --</option>
+          <option value="ชาย">ชาย</option>
+          <option value="หญิง">หญิง</option>
+          <option value="ทางเลือก/ไม่ระบุ">ทางเลือก / ไม่ประสงค์ระบุ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="age">อายุ (ปี) *</label>
+        <input type="number" id="age" min="10" max="70" required placeholder="เช่น 21">
+      </div>
+      <div class="form-group">
+        <label for="occupation">สถานภาพ / กลุ่มสายอาชีพ *</label>
+        <select id="occupation" required>
+          <option value="">-- เลือกกลุ่มอาชีพ --</option>
+          <option value="นักเรียน/นักศึกษา">นักเรียน / นักศึกษา</option>
+          <option value="พนักงานบริษัทเอกชน">พนักงานบริษัทเอกชน</option>
+          <option value="ข้าราชการ/รัฐวิสาหกิจ">ข้าราชการ / รัฐวิสาหกิจ</option>
+          <option value="ฟรีแลนซ์/ธุรกิจส่วนตัว">ฟรีแลนซ์ / ธุรกิจส่วนตัว</option>
+          <option value="ว่างงาน/รอทำงาน">ว่างงาน / พักงาน</option>
+          <option value="อื่นๆ">อื่น ๆ</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="income">ประมาณการรายได้ส่วนบุคคลต่อเดือน (บาท) *</label>
+        <input type="number" id="income" min="0" required placeholder="เช่น 9000">
+      </div>
+      <div class="form-group">
+        <label for="playtime">เวลาเล่นเกมเฉลี่ยต่อสัปดาห์ (ชั่วโมง) *</label>
+        <input type="number" id="playtime" min="0" max="168" required placeholder="เช่น 15">
+      </div>
+      <div class="form-group">
+        <label>ช่วงเวลาที่เล่นเกมมากที่สุด *</label>
+        <div class="radio-group">
+          <label class="radio-option"><input type="radio" name="peak_time" value="กลางวัน (06.00-18.00)" required> กลางวัน (06:00 - 18:00)</label>
+          <label class="radio-option"><input type="radio" name="peak_time" value="กลางคืน (18.01-05.59)"> กลางคืน (18:01 - 05:59)</label>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn-secondary" onclick="prevStep(2)">ย้อนกลับ</button>
+        <button type="button" class="btn-primary" onclick="nextStep(2)">ถัดไป</button>
+      </div>
+    </div>
+
+    <!-- ขั้นที่ 3: แนวเกมและราคา -->
+    <div class="card step" id="step3">
+      <div class="header">
+        <h1>แนวเกมและราคาที่เคยซื้อ</h1>
+        <p>ตอนที่ 2: ปัจจัยสำหรับการวิเคราะห์จุดราคา</p>
+      </div>
+      <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0;">
+      <div class="form-group">
+        <label for="platform">แพลตฟอร์มหลักที่ใช้เล่นเกม *</label>
+        <select id="platform" required>
+          <option value="">-- เลือกแพลตฟอร์ม --</option>
+          <option value="PC">คอมพิวเตอร์ (PC / Laptop)</option>
+          <option value="Console">คอนโซล (PlayStation / Xbox / Switch)</option>
+          <option value="Mobile">สมาร์ตโฟน / แท็บเล็ต (Mobile)</option>
+        </select>
+      </div>
+
+      <!-- บล็อกเลือก 8 หมวดหมู่ -->
+      <div class="form-group">
+        <label>แนวเกมหลักที่เล่นบ่อยที่สุด (เลือก 1 หมวด) *</label>
+        <div class="genre-grid">
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Action" required><div class="genre-title">1. Action</div><div class="genre-sub">FPS, Platformer, Fighting</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Adventure"><div class="genre-title">2. Adventure</div><div class="genre-sub">Point & Click, Visual Novel</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Action-Adventure"><div class="genre-title">3. Action-Adventure</div><div class="genre-sub">Survival Horror, Stealth, Metroidvania</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="RPG"><div class="genre-title">4. RPG</div><div class="genre-sub">Soulslike, MMORPG, Turn-based RPG</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Strategy"><div class="genre-title">5. Strategy</div><div class="genre-sub">RTS, Turn-base, MOBA, Tower Defence</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Simulation"><div class="genre-title">6. Simulation</div><div class="genre-sub">City Builder / Tycoon, Farming Sim</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Sport & Racing"><div class="genre-title">7. Sport & Racing</div><div class="genre-sub">Sport, Racing Simulator / Arcade</div></label>
+          <label class="genre-card"><input type="radio" name="primary_genre" value="Puzzle & Party"><div class="genre-title">8. Puzzle & Party Game</div><div class="genre-sub">Puzzle Logic, Party / Co-op</div></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="dislike_genre">แนวเกมที่ไม่ชอบ / เล่นน้อยที่สุด *</label>
+        <select id="dislike_genre" required>
+          <option value="">-- เลือกแนวเกม --</option>
+          <option value="Action">Action</option>
+          <option value="Adventure">Adventure</option>
+          <option value="Action-Adventure">Action-Adventure</option>
+          <option value="RPG">RPG</option>
+          <option value="Strategy">Strategy</option>
+          <option value="Simulation">Simulation</option>
+          <option value="Sport & Racing">Sport & Racing</option>
+          <option value="Puzzle & Party">Puzzle & Party Game</option>
+          <option value="None">ไม่มีแนวที่ไม่ชอบ</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="min_price">ราคาเกมที่ "ถูกที่สุด" ที่เคยซื้อ (บาท) *</label>
+        <input type="number" id="min_price" min="0" required placeholder="เช่น 69">
+      </div>
+
+      <div class="form-group">
+        <label for="max_price">[Target] ราคาเกมที่ "แพงที่สุด" ที่เคยซื้อ 1 เกม (บาท) *</label>
+        <input type="number" id="max_price" min="0" required placeholder="เช่น 1890">
+      </div>
+
+      <div class="form-group">
+        <label for="price_sentiment">ความรู้สึกต่อความคุ้มค่าของเกมราคาแพงที่สุด *</label>
+        <select id="price_sentiment" required>
+          <option value="">-- เลือกความคิดเห็น --</option>
+          <option value="คุ้มค่ามาก">คุ้มค่ามาก</option>
+          <option value="เหมาะสมกับคุณภาพ">เหมาะสมกับคุณภาพตามมาตรฐาน</option>
+          <option value="แพงเกินไป">แพงเกินไป</option>
+          <option value="ไม่เคยซื้อ">ไม่เคยซื้อเกมด้วยเงินจริง</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="channel">ท่านได้รับแบบสำรวจนี้จากช่องทางใด *</label>
+        <select id="channel" required>
+          <option value="">-- เลือกช่องทาง --</option>
+          <option value="Discord/Facebook กลุ่มเกม">Discord / Facebook ชุมชนเกม</option>
+          <option value="ไลน์ชั้นปี/มหาวิทยาลัย">ไลน์กลุ่มคณะ / มหาวิทยาลัย</option>
+          <option value="QR Code พื้นที่จริง">สแกน QR Code ในพื้นที่จริง</option>
+          <option value="ส่งต่อส่วนตัว">เพื่อนส่งต่อให้โดยตรง</option>
+        </select>
+      </div>
+
+      <div class="btn-group">
+        <button type="button" class="btn-secondary" onclick="prevStep(3)">ย้อนกลับ</button>
+        <button type="button" class="btn-primary" onclick="submitForm()">ส่งแบบสำรวจ</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- หน้าเมื่อเลือกไม่ยินยอม PDPA (ข้อ 1) -->
+  <div class="card" id="rejectedSection" style="display: none; text-align: center; padding: 40px 20px;">
+    <h2>สิ้นสุดการทำแบบสอบถาม</h2>
+    <p style="color: var(--text-muted);">เนื่องจากท่านไม่ยินยอมให้ประมวลผลข้อมูลส่วนบุคคล ระบบจึงไม่ได้ทำการบันทึกข้อมูลใด ๆ ของท่าน ขอบคุณสำหรับความร่วมมือ</p>
+    <button class="btn-secondary" onclick="location.reload()" style="margin-top: 15px;">เริ่มใหม่</button>
+  </div>
+
+  <!-- Modal สำหรับ Dev Login (ข้อ 3) -->
+  <div id="devModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; z-index: 100;">
+    <div class="card" style="width: 320px; margin: 0;">
+      <h2 style="margin-top: 0; font-size: 1.2rem; color: var(--primary);">Developer Login</h2>
+      <div class="form-group">
+        <label>รหัสผ่านนักพัฒนา</label>
+        <input type="password" id="devPassword" placeholder="กรอกรหัสผ่าน">
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn-secondary" onclick="closeDevModal()">ยกเลิก</button>
+        <button type="button" class="btn-primary" onclick="verifyDev()">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ไฮไลต์การ์ดแนวเกม
+  document.querySelectorAll('.genre-card input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.querySelectorAll('.genre-card').forEach(card => card.classList.remove('selected'));
+      if (this.checked) this.closest('.genre-card').classList.add('selected');
+    });
+  });
+
+  // ข้อ 1: ตรวจสอบ PDPA ถ้า No ให้จบฟอร์มทันที
+  function handleStep1() {
+    const pdpa = document.querySelector('input[name="pdpa"]:checked');
+    if (!pdpa) {
+      alert('กรุณาเลือกความยินยอมก่อนดำเนินการต่อ');
+      return;
+    }
+    if (pdpa.value === 'disagree') {
+      document.getElementById('surveyForm').style.display = 'none';
+      document.getElementById('rejectedSection').style.display = 'block';
+      document.getElementById('progress').style.width = '100%';
+      return;
+    }
+    nextStep(1);
+  }
+
+  function nextStep(current) {
+    if (current === 2) {
+      const g = document.getElementById('gender').value;
+      const a = document.getElementById('age').value;
+      const o = document.getElementById('occupation').value;
+      const inc = document.getElementById('income').value;
+      const pt = document.getElementById('playtime').value;
+      const pk = document.querySelector('input[name="peak_time"]:checked');
+      if (!g || !a || !o || !inc || !pt || !pk) {
+        alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+        return;
+      }
+    }
+    document.getElementById(`step${current}`).classList.remove('active');
+    document.getElementById(`step${current + 1}`).classList.add('active');
+    document.getElementById('progress').style.width = (current + 1) * 33 + '%';
+  }
+
+  function prevStep(current) {
+    document.getElementById(`step${current}`).classList.remove('active');
+    document.getElementById(`step${current - 1}`).classList.add('active');
+    document.getElementById('progress').style.width = (current - 1) * 33 + '%';
+  }
+
+  // ส่งข้อมูล และ Redirect ไปหน้า summary.html (ข้อ 2)
+  function submitForm() {
+    const pf = document.getElementById('platform').value;
+    const selectedGenre = document.querySelector('input[name="primary_genre"]:checked');
+    const dg = document.getElementById('dislike_genre').value;
+    const minP = document.getElementById('min_price').value;
+    const maxP = document.getElementById('max_price').value;
+    const ps = document.getElementById('price_sentiment').value;
+    const ch = document.getElementById('channel').value;
+
+    if (!pf || !selectedGenre || !dg || minP === '' || maxP === '' || !ps || !ch) {
+      alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+      return;
+    }
+
+    const row = {
+      timestamp: new Date().toISOString(),
+      gender: document.getElementById('gender').value,
+      age: parseInt(document.getElementById('age').value),
+      occupation: document.getElementById('occupation').value,
+      income_month: parseFloat(document.getElementById('income').value),
+      play_hours_week: parseFloat(document.getElementById('playtime').value),
+      peak_time: document.querySelector('input[name="peak_time"]:checked').value,
+      primary_platform: pf,
+      primary_genre: selectedGenre.value,
+      dislike_genre: dg,
+      min_game_price: parseFloat(minP),
+      max_game_price: parseFloat(maxP),
+      max_price_sentiment: ps,
+      survey_channel: ch
+    };
+
+    fetch('save.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(row)
+    }).finally(() => {
+      // เซฟข้อมูลลง LocalStorage เพื่อให้หน้า summary.html อ่านได้แบบ Offline
+      let responses = JSON.parse(localStorage.getItem('game_survey_data') || '[]');
+      responses.push(row);
+      localStorage.setItem('game_survey_data', JSON.stringify(responses));
+      
+      // ข้อ 2: ไปหน้า summary.html โดยไม่ไป analytics.html
+      window.location.href = 'summary.html';
+    });
+  }
+
+  // ข้อ 3 & 4: ระบบ Login สิทธิ์ Developer
+  function showDevLogin() {
+    document.getElementById('devModal').style.display = 'flex';
+  }
+  function closeDevModal() {
+    document.getElementById('devModal').style.display = 'none';
+  }
+  function verifyDev() {
+    const pwd = document.getElementById('devPassword').value;
+    // รหัสผ่านเริ่มต้นคือ dev123 (เปลี่ยนได้ตามต้องการ)
+    if (pwd === 'dev123') {
+      window.location.href = 'analytics.html';
+    } else {
+      alert('รหัสผ่านไม่ถูกต้อง');
+    }
+  }
+</script>
+</body>
+</html>

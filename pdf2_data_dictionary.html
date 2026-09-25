@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>Data Dictionary - CPE-443</title>
+  <style>
+    @page { size: A4; margin: 15mm; }
+    body { font-family: "Sarabun", -apple-system, sans-serif; line-height: 1.4; color: #1e293b; font-size: 9.5pt; }
+    h1 { font-size: 16pt; color: #0f172a; border-bottom: 2px solid #0284c7; padding-bottom: 4px; margin-bottom: 8px; }
+    h2 { font-size: 11.5pt; color: #0369a1; margin-top: 14px; margin-bottom: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
+    th { background-color: #f1f5f9; color: #0f172a; font-weight: bold; }
+    tr:nth-child(even) { background-color: #f8fafc; }
+    code { font-family: Consolas, monospace; color: #0284c7; }
+  </style>
+</head>
+<body>
+
+  <h1>พจนานุกรมข้อมูล (Data Dictionary) - ฐานข้อมูล 5NF</h1>
+
+  <h2>1. ตาราง Respondent (ข้อมูลหลักผู้ตอบแบบสำรวจ)</h2>
+  <table>
+    <tr><th>Attribute Name</th><th>Data Type</th><th>Null</th><th>Key</th><th>Constraints / Description</th></tr>
+    <tr><td><code>respondent_id</code></td><td>INT</td><td>No</td><td>PK</td><td>Auto Increment รหัสประจำตัวผู้ตอบ</td></tr>
+    <tr><td><code>gender</code></td><td>VARCHAR(20)</td><td>No</td><td>-</td><td>เพศ (ชาย, หญิง, ทางเลือก/ไม่ระบุ)</td></tr>
+    <tr><td><code>age</code></td><td>INT</td><td>No</td><td>-</td><td>CHECK (age BETWEEN 10 AND 70)</td></tr>
+    <tr><td><code>occupation_id</code></td><td>INT</td><td>No</td><td>FK</td><td>Foreign Key อ้างอิงตาราง Occupation</td></tr>
+    <tr><td><code>income_month</code></td><td>DECIMAL(10,2)</td><td>No</td><td>-</td><td>CHECK (income_month >= 0) รายได้บาท/เดือน</td></tr>
+    <tr><td><code>play_hours_week</code></td><td>DECIMAL(5,2)</td><td>No</td><td>-</td><td>CHECK (play_hours_week BETWEEN 0 AND 168)</td></tr>
+    <tr><td><code>peak_time</code></td><td>VARCHAR(50)</td><td>No</td><td>-</td><td>ช่วงเวลาที่เล่นมากที่สุด (กลางวัน/กลางคืน)</td></tr>
+    <tr><td><code>survey_channel_id</code></td><td>INT</td><td>No</td><td>FK</td><td>Foreign Key อ้างอิง SurveyChannel</td></tr>
+    <tr><td><code>created_at</code></td><td>DATETIME</td><td>No</td><td>-</td><td>DEFAULT CURRENT_TIMESTAMP เวลาบันทึก</td></tr>
+  </table>
+
+  <h2>2. ตาราง PriceHistory (ประวัติราคาและการตัดสินใจซื้อ)</h2>
+  <table>
+    <tr><th>Attribute Name</th><th>Data Type</th><th>Null</th><th>Key</th><th>Constraints / Description</th></tr>
+    <tr><td><code>history_id</code></td><td>INT</td><td>No</td><td>PK</td><td>Auto Increment รหัสประวัติราคา</td></tr>
+    <tr><td><code>respondent_id</code></td><td>INT</td><td>No</td><td>FK, UQ</td><td>Unique Key (1 คนต่อ 1 ประวัติ) ON DELETE CASCADE</td></tr>
+    <tr><td><code>min_price</code></td><td>DECIMAL(10,2)</td><td>No</td><td>-</td><td>CHECK (min_price >= 0) ราคาต่ำสุดที่เคยซื้อ</td></tr>
+    <tr><td><code>max_price</code></td><td>DECIMAL(10,2)</td><td>No</td><td>-</td><td>CHECK (max_price >= 0) ราคาแพงสุด (Target Variable)</td></tr>
+    <tr><td><code>price_sentiment</code></td><td>VARCHAR(50)</td><td>No</td><td>-</td><td>ความรู้สึกต่อราคา (คุ้มค่ามาก/เหมาะสม/แพงเกินไป)</td></tr>
+  </table>
+
+  <h2>3. ตาราง Lookup (Entity อ้างอิง)</h2>
+  <table>
+    <tr><th>Table Name</th><th>Attribute Name</th><th>Data Type</th><th>Key</th><th>Description</th></tr>
+    <tr><td><code>Occupation</code></td><td><code>occupation_id</code><br><code>occupation_name</code></td><td>INT<br>VARCHAR(100)</td><td>PK<br>UQ</td><td>รหัสอาชีพ<br>ชื่อกลุ่มอาชีพ (นศ., เอกชน, รัฐ, ฟรีแลนซ์)</td></tr>
+    <tr><td><code>SurveyChannel</code></td><td><code>channel_id</code><br><code>channel_name</code></td><td>INT<br>VARCHAR(100)</td><td>PK<br>UQ</td><td>รหัสช่องทาง<br>ชื่อช่องทางเก็บข้อมูล (วัด Sampling Bias)</td></tr>
+    <tr><td><code>Platform</code></td><td><code>platform_id</code><br><code>platform_name</code></td><td>INT<br>VARCHAR(50)</td><td>PK<br>UQ</td><td>รหัสแพลตฟอร์ม<br>ชื่อแพลตฟอร์ม (PC, Console, Mobile)</td></tr>
+    <tr><td><code>Genre</code></td><td><code>genre_id</code><br><code>genre_code</code><br><code>genre_title</code><br><code>genre_description</code></td><td>INT<br>VARCHAR(20)<br>VARCHAR(100)<br>VARCHAR(255)</td><td>PK<br>UQ<br>-<br>-</td><td>รหัสแนวเกม<br>โค้ดแนวเกมย่อ<br>ชื่อหมวดเกม 8 หมวดหลัก<br>ตัวอย่างเกมในแนวนี้</td></tr>
+  </table>
+
+  <h2>4. ตารางความสัมพันธ์รองรับ 5NF (Decomposition Tables)</h2>
+  <table>
+    <tr><th>Table Name</th><th>Attribute Name</th><th>Data Type</th><th>Key</th><th>Description</th></tr>
+    <tr><td><code>RespondentPlatform</code></td><td><code>respondent_id</code><br><code>platform_id</code></td><td>INT<br>INT</td><td>PK, FK<br>PK, FK</td><td>รหัสผู้ตอบ<br>รหัสแพลตฟอร์มที่ผู้ตอบเล่น</td></tr>
+    <tr><td><code>RespondentGenre</code></td><td><code>respondent_id</code><br><code>genre_id</code></td><td>INT<br>INT</td><td>PK, FK<br>PK, FK</td><td>รหัสผู้ตอบ<br>รหัสแนวเกมที่ผู้ตอบชอบ</td></tr>
+    <tr><td><code>PlatformGenreSupport</code></td><td><code>platform_id</code><br><code>genre_id</code></td><td>INT<br>INT</td><td>PK, FK<br>PK, FK</td><td>รหัสแพลตฟอร์ม<br>รหัสแนวเกมที่ระบบรองรับ</td></tr>
+  </table>
+
+</body>
+</html>
