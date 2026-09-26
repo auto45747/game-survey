@@ -1,11 +1,10 @@
 <?php
-// ข้อมูลเชื่อมต่อ Aiven MySQL Cloud
-$host = "mysql-ff35469-autosiri20-c79e.i.aivencloud.com";
-$user = "avnadmin";
-// ถอดรหัสผ่านเพื่อป้องกัน GitHub Secret Protection บล็อก
-$pass = base64_decode("QVZOU19Cb08tSlM4YjIxRGo1VXYyWVky");
-$db   = "defaultdb";
-$port = 19547;
+// db_config.php
+$host = getenv('DB_HOST') ?: "mysql-ff35469-autosiri20-c79e.i.aivencloud.com";
+$user = getenv('DB_USER') ?: "avnadmin";
+$pass = getenv('DB_PASS') ?: base64_decode("QVZOU19Cb08tSlM4YjIxRGo1VXYyWVky");
+$db   = getenv('DB_NAME') ?: "defaultdb";
+$port = (int)(getenv('DB_PORT') ?: 19547);
 
 $conn = mysqli_init();
 $conn->ssl_set(NULL, NULL, NULL, NULL, NULL);
@@ -13,13 +12,14 @@ $conn->real_connect($host, $user, $pass, $db, $port, NULL, MYSQLI_CLIENT_SSL);
 
 if ($conn->connect_error) {
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Connection failed: " . $conn->connect_error]);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode(["status" => "error", "message" => "Database Connection Failed: " . $conn->connect_error]);
     exit();
 }
 
 $conn->set_charset("utf8mb4");
 
-// สร้างตาราง 5NF และ Seed ข้อมูลเริ่มต้นอัตโนมัติหากยังไม่มีในระบบ
+// Auto-initialize 5NF schema and initial seed data if not exist
 $initSql = <<<SQL
 CREATE TABLE IF NOT EXISTS Occupation (
     occupation_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -109,7 +109,6 @@ INSERT IGNORE INTO Genre (genre_code, genre_title, genre_description) VALUES
 ('Puzzle-Party', '8. Puzzle & Party Game', 'Puzzle Logic, Party / Co-op');
 SQL;
 
-// รันคำสั่งสร้างตารางในรอบแรก
 if ($conn->multi_query($initSql)) {
     do {
         if ($res = $conn->store_result()) {

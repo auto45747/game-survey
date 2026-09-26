@@ -1,81 +1,76 @@
 <?php
-header("Access-Control-Allow-Origin: *");
+// get_analytics_data.php
 header("Content-Type: application/json; charset=UTF-8");
 require_once "db_config.php";
 
-// 1. ดึงภาพรวมสถิติราคาแพงสุดที่เคยซื้อ (Target) และราคาต่ำสุด
-$overviewSql = "SELECT 
-                    COUNT(r.respondent_id) AS total_respondents,
-                    AVG(ph.max_price) AS global_avg_max_price,
-                    AVG(ph.min_price) AS global_avg_min_price
+$action = $_GET['action'] ?? 'all';
+
+try {
+    // ดึงค่าภาพรวมสำหรับ Dashboard และ Summary
+    $overviewSql = "
+        SELECT 
+            COUNT(DISTINCT r.respondent_id) as total_respondents,
+            COALESCE(AVG(ph.max_price), 0) as avg_max_price,
+            COALESCE(AVG(ph.min_price), 0) as avg_min_price,
+            COALESCE(AVG(r.play_hours_week), 0) as avg_hours
+        FROM Respondent r
+        LEFT JOIN PriceHistory ph ON r.respondent_id = ph.respondent_id
+    ";
+    $overviewRes = $conn->query($overviewSql);
+    $overview = $overviewRes->fetch_assoc();
+
+    // ดึงข้อมูลแนวเกมทั้งหมด
+    $genres = [];
+    $genreRes = $conn->query("SELECT genre_id, genre_code, genre_title FROM Genre ORDER BY genre_id ASC");
+    while ($row = $genreRes->fetch_assoc()) {
+        $genres[] = $row;
+    }
+
+    // ดึงข้อมูลแพลตฟอร์มทั้งหมด
+    $platforms = [];
+    $platRes = $conn->query("SELECT platform_id, platform_name FROM Platform ORDER BY platform_id ASC");
+    while ($row = $platRes->fetch_assoc()) {
+        $platforms[] = $row;
+    }
+
+    // กรณีต้องการคำนวณราคาเฉพาะ Genre และ Platform ผ่าน POST
+    $calculatedPrice = null;
+    $rawInput = file_get_contents("php://input");
+    if (!empty($rawInput)) {
+        $postData = json_decode($rawInput, true);
+        if ($postData && isset($postData['genre_id']) && isset($postData['platform_id'])) {
+            $g_id = intval($postData['genre_id']);
+            $p_id = intval($postData['platform_id']);
+
+            $calcSql = "
+                SELECT 
+                    COALESCE(AVG(ph.max_price), 0) as target_max,
+                    COALESCE(AVG(ph.min_price), 0) as target_min,
+                    COUNT(r.respondent_id) as sample_count
                 FROM Respondent r
-                JOIN PriceHistory ph ON r.respondent_id = ph.respondent_id";
-$overviewRes = $conn->query($overviewSql)->fetch_assoc();
-
-// 2. ดึงค่าเฉลี่ยราคาและชั่วโมงเล่นแยกตามแนวเกม (Genre Breakdown)
-$genreSql = "SELECT 
-                g.genre_code,
-                g.genre_title,
-                COUNT(r.respondent_id) AS genre_count,
-                AVG(ph.max_price) AS avg_max_price,
-                AVG(r.play_hours_week) AS avg_play_hours
-             FROM Genre g
-             JOIN RespondentGenre rg ON g.genre_id = rg.genre_id
-             JOIN Respondent r ON rg.respondent_id = r.respondent_id
-             JOIN PriceHistory ph ON r.respondent_id = ph.respondent_id
-             GROUP BY g.genre_id";
-$genreResult = $conn->query($genreSql);
-$genreStats = [];
-while ($row = $genreResult->fetch_assoc()) {
-    $genreStats[$row['genre_code']] = [
-        'count' => (int)$row['genre_count'],
-        'avg_max_price' => (float)$row['avg_max_price'],
-        'avg_play_hours' => (float)$row['avg_play_hours']
-    ];
-}
-
-// 3. ดึงค่าเฉลี่ยราคาแยกตามแพลตฟอร์ม (Platform Breakdown)
-$platformSql = "SELECT 
-                    p.platform_name,
-                    COUNT(r.respondent_id) AS platform_count,
-                    AVG(ph.max_price) AS avg_max_price
-                FROM Platform p
-                JOIN RespondentPlatform rp ON p.platform_id = rp.platform_id
-                JOIN Respondent r ON rp.respondent_id = r.respondent_id
                 JOIN PriceHistory ph ON r.respondent_id = ph.respondent_id
-                GROUP BY p.platform_id";
-$platformResult = $conn->query($platformSql);
-$platformStats = [];
-while ($row = $platformResult->fetch_assoc()) {
-    $platformStats[$row['platform_name']] = [
-        'count' => (int)$row['platform_count'],
-        'avg_max_price' => (float)$row['avg_max_price']
-    ];
+                JOIN RespondentGenre rg ON r.respondent_id = rg.respondent_id
+                JOIN RespondentPlatform rp ON r.respondent_id = rp.respondent_id
+                WHERE rg.genre_id = ? AND rp.platform_id = ?
+            ";
+            $stmt = $conn->prepare($calcSql);
+            $stmt->bind_param("ii", $g_id, $p_id);
+            $stmt->execute();
+            $calculatedPrice = $stmt->get_result()->fetch_assoc();
+            $stmt->close();
+        }
+    }
+
+    echo json_encode([
+        "status" => "success",
+        "overview" => $overview,
+        "genres" => $genres,
+        "platforms" => $platforms,
+        "calculation" => $calculatedPrice
+    ], JSON_UNESCAPED_UNICODE);
+
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["status" => "error", "message" => $e->getMessage()], JSON_UNESCAPED_UNICODE);
 }
-
-// 4. สัดส่วนความคุ้มค่า (Sentiment Breakdown)
-$sentimentSql = "SELECT 
-                    price_sentiment, 
-                    COUNT(*) AS count,
-                    AVG(max_price) AS avg_price
-                 FROM PriceHistory 
-                 GROUP BY price_sentiment";
-$sentimentResult = $conn->query($sentimentSql);
-$sentimentStats = [];
-while ($row = $sentimentResult->fetch_assoc()) {
-    $sentimentStats[$row['price_sentiment']] = [
-        'count' => (int)$row['count'],
-        'avg_price' => (float)$row['avg_price']
-    ];
-}
-
-echo json_encode([
-    "status" => "success",
-    "overview" => $overviewRes,
-    "genres" => $genreStats,
-    "platforms" => $platformStats,
-    "sentiments" => $sentimentStats
-], JSON_UNESCAPED_UNICODE);
-
-$conn->close();
 ?>
